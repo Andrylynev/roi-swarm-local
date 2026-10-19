@@ -323,6 +323,7 @@ def test_ready_retries_503_but_never_trusts_foreign_health(tmp_path, monkeypatch
     manage.wait_ready("inference", service, record, 2)
     monkeypatch.setattr(manage, "health", lambda url: {"ready": True, "status": 200})
     monkeypatch.setattr(manage, "listener_pid", lambda port: 999)
+    monkeypatch.setattr(manage, "process_identity", lambda pid: None)
     with pytest.raises(manage.LifecycleError, match="unowned"):
         manage.wait_ready("inference", service, record, 2)
 

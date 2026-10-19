@@ -19,7 +19,11 @@ def test_run_store_tracks_graph_nodes_and_events(tmp_path) -> None:
     assert len(snapshot["events"]) == 3
 
 
-def test_run_store_lists_newest_first(tmp_path) -> None:
+def test_run_store_lists_newest_first(tmp_path, monkeypatch) -> None:
+    # Windows clocks can give immediate writes an identical timestamp. Supply
+    # distinct instants: this test specifies ordering, not clock resolution.
+    times = iter(("2026-01-01T00:00:00+00:00", "2026-01-01T00:00:01+00:00"))
+    monkeypatch.setattr("roi_swarm.telemetry._now", lambda: next(times))
     store = RunStore(tmp_path / "runs")
     first = store.create_run("first")
     second = store.create_run("second")

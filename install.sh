@@ -32,7 +32,9 @@ main() {
         case "$1" in
             --help|-h) usage; return ;;
             --dir|--backend|--profile)
-                [ "$#" -ge 2 ] && [ -n "$2" ] || fail "Missing value for $1"
+                if [ "$#" -lt 2 ] || [ -z "$2" ]; then
+                    fail "Missing value for $1"
+                fi
                 case "$1" in --dir) root="$2" ;; --backend) backend="$2" ;; --profile) profile="$2" ;; esac
                 shift 2 ;;
             --with-security) security=true; shift ;;
@@ -56,9 +58,13 @@ main() {
     if [ -e "$root" ]; then
         [ -d "$root" ] || fail 'Installation path is not a directory'
         if [ -n "$(command ls -A "$root")" ]; then
-            [ -f "$marker" ] && [ ! -L "$marker" ] || fail 'Existing directory is unmarked; choose a new empty directory.'
+            if [ ! -f "$marker" ] || [ -L "$marker" ]; then
+                fail 'Existing directory is unmarked; choose a new empty directory.'
+            fi
             [ "$(<"$marker")" = "$expected" ] || fail 'Installation ownership marker does not match this path/repository.'
-            [ -d "$root/.git" ] && [ ! -L "$root/.git" ] || fail 'Expected a standalone Git checkout'
+            if [ ! -d "$root/.git" ] || [ -L "$root/.git" ]; then
+                fail 'Expected a standalone Git checkout'
+            fi
             origin=$(git -C "$root" config --local --get-all remote.origin.url) || fail 'Origin is missing'
             [ "$origin" = "$repo" ] || fail 'Untrusted origin; expected the public HTTPS repository.'
             [ "$(git -C "$root" rev-parse --show-toplevel)" = "$root" ] || fail 'Checkout root mismatch'

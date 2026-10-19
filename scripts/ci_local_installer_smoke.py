@@ -78,6 +78,15 @@ def fixture_smoke(checkout: Path, work: Path, shell: str) -> dict:
     env = {
         **os.environ,
         "HOME": str(home),
+        # setup-uv may supply 3.11 outside PATH. The bootstrap deliberately
+        # clears UV_PYTHON, so expose this real interpreter for offline fixtures.
+        "PATH": os.pathsep.join(
+            (
+                str(Path(sys.executable).resolve().parent),
+                str(Path(sys.executable).parent),
+                os.environ.get("PATH", ""),
+            )
+        ),
         "UV_CACHE_DIR": str(work / "uv-cache"),
         "UV_PYTHON_DOWNLOADS": "never",
         "UV_OFFLINE": "1",

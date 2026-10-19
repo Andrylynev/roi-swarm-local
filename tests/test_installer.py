@@ -25,6 +25,7 @@ def run_function(script: str, **variables: str) -> subprocess.CompletedProcess:
         [BASH],
         input=definitions + "\n" + script,
         text=True,
+        encoding="utf-8",
         capture_output=True,
         env=env,
         timeout=30,
@@ -59,6 +60,15 @@ def provider():
         server.shutdown()
         server.server_close()
         thread.join()
+
+
+def test_installer_subprocess_is_utf8_under_non_utf8_host_locale(monkeypatch):
+    import locale
+
+    monkeypatch.setattr(locale, "getencoding", lambda: "cp1252")
+    result = run_function("printf 'UTF8_OK'")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "UTF8_OK"
 
 
 def test_provider_probe_sends_actual_key(provider):
@@ -232,6 +242,7 @@ def test_installer_refuses_dangerous_install_directories(directory):
         input=definitions + '\ncheck_system() { fail "REACHED_INSTALL"; }; main --dir "$BAD_DIR"',
         env={**os.environ, "BAD_DIR": directory},
         text=True,
+        encoding="utf-8",
         capture_output=True,
         timeout=10,
     )
