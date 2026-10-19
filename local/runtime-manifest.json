@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "installer_repository": "https://github.com/Andrylynev/roi-swarm-local",
+  "prism": {
+    "repository": "https://github.com/PrismML-Eng/llama.cpp",
+    "release": "prism-b10777-e3de715",
+    "publisher_digests": "https://api.github.com/repos/PrismML-Eng/llama.cpp/releases/tags/prism-b10777-e3de715",
+    "license": "https://github.com/PrismML-Eng/llama.cpp/blob/e3de715/LICENSE"
+  },
+  "hermes": {
+    "repository": "https://github.com/NousResearch/hermes-agent",
+    "commit": "498abb677ec39ea3ae9f8f5ed60e7def6bc47e70",
+    "license": "https://github.com/NousResearch/hermes-agent/blob/498abb677ec39ea3ae9f8f5ed60e7def6bc47e70/LICENSE"
+  },
+  "model_notices": {
+    "policy": "Weights are downloaded directly from their publishers, not redistributed in this repository. Review the publisher model card, LICENSE and NOTICE at each assets.json revision. No legal suitability guarantee is made.",
+    "bonsai_2b": "https://huggingface.co/prism-ml/Ternary-Bonsai-2-2B-gguf/tree/683f7be2629342a50987627b40881e54761a2430",
+    "bonsai_4b": "https://huggingface.co/prism-ml/Ternary-Bonsai-2-4B-gguf/tree/8d6557168168f91ea6697a4a49ed2ef622b53adb",
+    "bonsai_9b": "https://huggingface.co/prism-ml/Ternary-Bonsai-2-9B-gguf/tree/5b2abb02362efbed46bbe204014b02837778b2c2",
+    "whiterabbit_quant": "https://huggingface.co/bartowski/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-GGUF/tree/4874da7ad5fa4da4f2584ae64ddc21f5a8e7dfce",
+    "whiterabbit_publisher_terms": "https://huggingface.co/WhiteRabbitNeo/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B/blob/4e7be6e25ccb4824f1dcce51c967e3e4e6e8d4e0/README.md",
+    "whiterabbit_optional": true,
+    "whiterabbit_requires_explicit_terms_acceptance": true
+  },
+  "hermes_configuration_sources": [
+    "https://hermes-agent.nousresearch.com/docs/user-guide/configuration",
+    "https://github.com/NousResearch/hermes-agent/blob/498abb677ec39ea3ae9f8f5ed60e7def6bc47e70/cli-config.yaml.example",
+    "https://github.com/NousResearch/hermes-agent/blob/498abb677ec39ea3ae9f8f5ed60e7def6bc47e70/hermes_cli/config_providers.py",
+    "https://github.com/NousResearch/hermes-agent/blob/498abb677ec39ea3ae9f8f5ed60e7def6bc47e70/agent/agent_init.py"
+  ]
+}

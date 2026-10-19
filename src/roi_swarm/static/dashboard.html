@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROI Swarm — рой ИИ-агентов</title>
+<style>
+:root{color-scheme:dark;--bg:#05060a;--panel:rgba(14,16,26,.72);--line:rgba(140,150,255,.14);--text:#eef0ff;--muted:#8d93b5;--dim:#5a6080;
+--violet:#8b7bff;--cyan:#38e1ff;--green:#3ef0a3;--red:#ff6b81;--amber:#ffc65c;--opus:#ffb36b;
+--mono:ui-monospace,"JetBrains Mono","Cascadia Code",Consolas,monospace;--sans:Inter,"Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
+body{background:radial-gradient(1200px 600px at 70% -10%,rgba(139,123,255,.16),transparent 60%),radial-gradient(900px 500px at -10% 30%,rgba(56,225,255,.08),transparent 60%),var(--bg);min-height:100vh}
+a{color:inherit}
+.wrap{max-width:1480px;margin:0 auto;padding:0 24px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.logo{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.2px}
+.logo i{width:34px;height:34px;border-radius:10px;background:conic-gradient(from 200deg,var(--violet),var(--cyan),var(--green),var(--violet));box-shadow:0 0 28px rgba(139,123,255,.55);display:block}
+.logo small{display:block;font:500 11px var(--mono);color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.navr{display:flex;gap:10px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:rgba(255,255,255,.03);border-radius:99px;padding:6px 12px;font:500 12px var(--mono);color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+.dot.off{background:var(--red);box-shadow:0 0 10px var(--red)}
+button.chip{cursor:pointer}button.chip:hover{color:var(--text)}
+.model-config{margin:6px 0 20px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+.model-head,.model-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.model-head{justify-content:space-between}.model-head h2{margin:0;color:var(--text)}
+.model-note,.model-meta{font-size:12px;line-height:1.5;color:var(--muted);margin:8px 0}
+.model-fields{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:12px 0}
+.model-fields label{display:grid;gap:6px;min-width:0;font-size:12px;color:var(--muted)}
+.model-fields input{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:9px;font:12px var(--mono)}
+.model-config button{border-radius:8px}.model-config button.primary{color:var(--text);border-color:var(--violet);background:rgba(139,123,255,.15)}
+.model-config :focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.model-config :disabled{opacity:.45;cursor:not-allowed}.model-config[data-dirty="true"]{border-color:var(--violet)}
+.model-status{flex:1 1 260px;min-width:0;overflow-wrap:anywhere;font-size:12px;color:var(--muted)}
+.model-status[data-kind="error"]{color:var(--red)}.model-status[data-kind="success"]{color:var(--green)}
+.pipe-note{margin:-4px 0 12px;font-size:12px;color:var(--muted)}.step .who{overflow-wrap:anywhere}
+@media(max-width:1100px){.model-fields{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.model-fields{grid-template-columns:1fr}.model-config{padding:12px}.model-head{align-items:flex-start}.model-actions button{flex:1}.model-config button,.model-fields input{min-height:44px}.model-note,.model-meta,.model-status,.model-fields label{font-size:13px}.navr{flex-wrap:wrap;justify-content:flex-end}.wrap{padding:0 14px}}
+.sleep-toggle{display:flex;align-items:center;gap:8px;min-height:44px;font-size:13px;cursor:pointer}.sleep-toggle input{width:18px;height:18px;accent-color:var(--violet)}
+.sleep-metrics{display:flex;gap:12px 24px;flex-wrap:wrap;margin:10px 0;font-size:12px}.sleep-metrics>div{min-width:0;max-width:100%}.sleep-metrics dt{color:var(--muted);margin-bottom:4px}.sleep-metrics dd{margin:0;overflow-wrap:anywhere;font-family:var(--mono)}
+.sleep-details{border-top:1px solid var(--line);padding-top:10px;font-size:12px}.sleep-details summary{cursor:pointer;color:var(--muted);min-height:32px}.sleep-details p{line-height:1.6;color:var(--muted)}
+.sleep-details pre{max-height:260px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font:12px/1.5 var(--mono)}
+#sleep-state{color:var(--cyan)}#sleep-error{color:var(--red)}#sleep-restart{color:var(--amber)}
+@media(max-width:600px){.sleep-metrics{gap:12px}.sleep-metrics>div{flex:1 1 140px}.sleep-details,.sleep-metrics{font-size:13px}}
+.hero{display:grid;grid-template-columns:minmax(320px,430px) 1fr;gap:24px;align-items:stretch;margin-top:6px}
+.pitch h1{font-size:40px;line-height:1.08;margin:18px 0 14px;letter-spacing:-.8px}
+.grad{background:linear-gradient(90deg,var(--violet),var(--cyan) 60%,var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+.pitch p{color:var(--muted);line-height:1.6;font-size:15px;margin:0 0 18px}
+.feats{display:grid;gap:10px;margin:0 0 18px;padding:0;list-style:none}
+.feats li{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;font-size:14px;line-height:1.45;color:#cfd3f0}
+.feats b{color:var(--text)}
+.ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;background:rgba(139,123,255,.12);border:1px solid var(--line)}
+.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tot{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel)}
+.tot b{display:block;font:700 22px var(--mono)}
+.tot span{font-size:11px;color:var(--muted)}
+.stage{position:relative;border:1px solid var(--line);border-radius:20px;overflow:hidden;min-height:520px;background:radial-gradient(closest-side,rgba(139,123,255,.10),transparent),rgba(8,10,18,.6)}
+#swarm-graph{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ov{position:absolute;pointer-events:none}
+.ov.tl{top:16px;left:18px}.ov.tr{top:16px;right:18px;text-align:right}.ov.bl{bottom:16px;left:18px;right:18px}
+.mode{font:600 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:rgba(5,6,10,.6);display:inline-block}
+.mode.swarm{color:var(--cyan);border-color:rgba(56,225,255,.35)}
+.mode.direct{color:var(--opus);border-color:rgba(255,179,107,.4)}
+.big{font:700 54px/1 var(--mono);margin-top:10px;text-shadow:0 0 30px rgba(139,123,255,.6)}
+.cap{font-size:12px;color:var(--muted);margin-top:4px}
+.legend{position:relative;z-index:2;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);background:rgba(5,6,10,.55);border:1px solid var(--line);border-radius:10px;padding:8px 12px;width:max-content;max-width:100%}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.reqline{margin-top:8px;font-size:13px;color:#d6d9f5;background:rgba(5,6,10,.55);border:1px solid var(--line);border-radius:10px;padding:8px 12px;max-width:760px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+h2{font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:34px 0 12px}
+.pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.step{position:relative;border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);transition:.3s}
+.step .n{font:600 11px var(--mono);color:var(--dim)}
+.step b{display:block;margin:6px 0 4px;font-size:14px}
+.step p{margin:0;font-size:12px;line-height:1.45;color:var(--muted)}
+.step .who{margin-top:8px;font:500 10px var(--mono);color:var(--violet)}
+.step.done{border-color:rgba(62,240,163,.35)}.step.done .n{color:var(--green)}
+.step.active{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(56,225,255,.25),0 0 30px rgba(56,225,255,.15)}
+.step.active .n{color:var(--cyan)}
+.step.skip{opacity:.35}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.kpi{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel)}
+.kpi span{font-size:11px;color:var(--muted)}
+.kpi b{display:block;font:700 22px var(--mono);min-height:27px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi small{display:block;color:var(--dim);font-size:11px;margin-top:2px}
+.grid{display:grid;grid-template-columns:260px minmax(0,1fr) 380px;gap:14px;margin-top:14px}
+.card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:16px;min-width:0}
+.card h3{margin:0 0 12px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.card h3 em{font-style:normal;font:500 11px var(--mono);color:var(--muted)}
+.runs{max-height:640px;overflow:auto;display:grid;gap:6px}
+.run{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:block;padding:10px;border-radius:10px;border:1px solid transparent}
+.run:hover,.run.on{background:rgba(139,123,255,.08);border-color:var(--line)}
+.run b{display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.run small{display:flex;justify-content:space-between;margin-top:5px;font:11px var(--mono);color:var(--muted)}
+.st-completed{color:var(--green)}.st-failed{color:var(--red)}.st-running{color:var(--cyan)}
+.bars{display:grid;gap:10px;margin-bottom:16px}
+.bar span{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px}
+.bar div{height:6px;border-radius:9px;background:rgba(255,255,255,.06);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--violet),var(--cyan));width:0;transition:width .6s}
+.verdict{font-size:13px;line-height:1.5;color:#cfd3f0;border-left:2px solid var(--violet);padding-left:10px;margin-bottom:16px}
+.tasks{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;max-height:430px;overflow:auto}
+.task{border:1px solid var(--line);border-radius:10px;padding:10px;font-size:12px;line-height:1.4;background:rgba(255,255,255,.02)}
+.task .h{display:flex;justify-content:space-between;gap:6px;white-space:nowrap;overflow:hidden;font:500 10px var(--mono);color:var(--muted);margin-bottom:6px}
+.task.completed{border-color:rgba(62,240,163,.3)}.task.failed{border-color:rgba(255,107,129,.4)}
+.task.working{border-color:rgba(56,225,255,.35);animation:glow 1.6s infinite}
+@keyframes glow{50%{box-shadow:0 0 18px rgba(56,225,255,.18)}}
+.answer{white-space:pre-wrap;font-size:13.5px;line-height:1.6;color:#e2e5ff;max-height:330px;overflow:auto}
+.events{max-height:250px;overflow:auto;font-size:12px}
+.ev{display:grid;grid-template-columns:62px 1fr auto;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.04)}
+.ev time{font:11px var(--mono);color:var(--dim)}
+.ev em{font-style:normal;font:10px var(--mono)}
+.empty{color:var(--dim);font-size:13px;padding:20px 0;text-align:center}
+.cta{margin:40px 0 30px;border:1px solid var(--line);border-radius:20px;padding:28px;display:grid;grid-template-columns:1.2fr 1fr;gap:24px;background:linear-gradient(120deg,rgba(139,123,255,.12),rgba(56,225,255,.05))}
+.cta h3{font-size:24px;margin:0 0 10px;letter-spacing:-.4px}
+.cta p{color:var(--muted);line-height:1.6;margin:0}
+.cta ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:14px;color:#cfd3f0}
+.cta li::before{content:"✦ ";color:var(--cyan)}
+footer{color:var(--dim);font-size:12px;padding:0 0 30px}
+@media(max-width:1200px){.grid{grid-template-columns:1fr 1fr}.grid>.runs-card{grid-column:1/-1}.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.hero,.cta{grid-template-columns:1fr}.pipe{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.pitch h1{font-size:30px}.stage{min-height:420px}.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <div class="logo"><i></i><div>ROI Swarm<small>AI Agent Swarm Platform</small></div></div>
+  <div class="navr">
+    <span class="chip"><span class="dot" id="conn-dot"></span><span id="connection">подключение…</span></span>
+    <button class="chip" id="token-btn" title="Сменить токен доступа">🔑 токен</button>
+  </div>
+</nav>
+
+<section class="model-config" id="model-config" aria-labelledby="model-title" data-dirty="false" aria-busy="true">
+  <div class="model-head"><h2 id="model-title">Configure · модели по ролям</h2><button class="chip" id="model-refresh" type="button">Обновить каталог</button></div>
+  <p class="model-note" id="model-help">Настройки применяются только к новым запросам. Synthesizer также отвечает за координатор и прямой ответ (direct). Verifier — программный код, а Critic — модель. Выберите ID из каталога или введите свой.</p>
+  <form id="model-form" aria-describedby="model-help">
+    <div class="model-fields">
+      <label for="model-router">Router · маршрутизация<input id="model-router" name="router" list="model-options" required autocomplete="off" spellcheck="false" disabled></label>
+      <label for="model-planner">Planner · планирование<input id="model-planner" name="planner" list="model-options" required autocomplete="off" spellcheck="false" disabled></label>
+      <label for="model-worker">Worker · агенты<input id="model-worker" name="worker" list="model-options" required autocomplete="off" spellcheck="false" disabled></label>
+      <label for="model-critic">Critic · критик<input id="model-critic" name="critic" list="model-options" required autocomplete="off" spellcheck="false" disabled></label>
+      <label for="model-synthesizer">Synthesizer · итог<input id="model-synthesizer" name="synthesizer" list="model-options" required autocomplete="off" spellcheck="false" disabled></label>
+    </div>
+    <datalist id="model-options"></datalist>
+    <p class="model-meta" id="model-catalog">Каталог: загрузка…</p>
+    <p class="model-meta" id="model-activity">Активные операции: —</p>
+    <p class="model-meta" id="model-context-limits">Контекст (токены, только просмотр): Worker — · Main —</p>
+    <div class="model-actions">
+      <button class="chip primary" id="model-apply" type="submit" disabled>Применить</button>
+      <button class="chip" id="model-discard" type="button" disabled>Отменить изменения</button>
+      <span class="model-status" id="model-status" role="status" aria-live="polite" aria-atomic="true">Загрузка настроек…</span>
+    </div>
+  </form>
+</section>
+
+<section class="model-config" id="sleep-config" aria-labelledby="sleep-title" aria-busy="true">
+  <div class="model-head">
+    <h2 id="sleep-title">Режим сна · работа в простое</h2>
+    <label class="sleep-toggle" for="sleep-enabled"><input id="sleep-enabled" type="checkbox" aria-describedby="sleep-help" disabled>Включить режим сна</label>
+  </div>
+  <p class="model-note" id="sleep-help">Пока нет задачи пользователя, сон продолжает публичные проверки: без суточного лимита и без лимита шагов в цикле. Каждый новый запрос приостанавливает фон; чтобы остановить сон, выключите переключатель. Повторные вызовы внешнего провайдера могут быть платными.</p>
+  <dl class="sleep-metrics">
+    <div><dt>Состояние</dt><dd id="sleep-state" role="status" aria-live="polite" aria-atomic="true">Загрузка…</dd></div>
+    <div><dt>Режим</dt><dd id="sleep-mode">—</dd></div>
+    <div><dt>Модель</dt><dd id="sleep-model">—</dd></div>
+    <div><dt>Задачи пользователя</dt><dd id="sleep-foreground">—</dd></div>
+    <div><dt>Вызовов сегодня</dt><dd id="sleep-calls">—</dd></div>
+  </dl>
+  <div class="model-actions"><span class="model-status" id="sleep-status" role="status" aria-live="polite" aria-atomic="true">Загрузка режима сна…</span></div>
+  <details class="sleep-details" id="sleep-details">
+    <summary>Подробности и публичный снимок</summary>
+    <dl class="sleep-metrics">
+      <div><dt>Суточный лимит вызовов</dt><dd id="sleep-daily-limit">—</dd></div>
+      <div><dt>Лимит шагов в цикле</dt><dd id="sleep-cycle-limit">—</dd></div>
+      <div><dt>Выполнено шагов</dt><dd id="sleep-steps">—</dd></div>
+      <div><dt>Циклов в очереди</dt><dd id="sleep-pending">—</dd></div>
+      <div><dt>Следующая проверка</dt><dd id="sleep-next-step">—</dd></div>
+    </dl>
+    <p>Снимок содержит публичные наблюдения, гипотезы и следующие проверки — это не внутреннее состояние модели. Работа не возобновляется с прерванного токена: следующий вызов использует публичный контрольный снимок.</p>
+    <p>Автоматическое применение кода — только после тестов и ревью, при условии чистого Git. Требуемый перезапуск сервиса выполняется отдельно.</p>
+    <p id="sleep-improvement">Автоулучшение: —</p>
+    <p id="sleep-restart" hidden></p>
+    <p id="sleep-error" hidden></p>
+    <p id="sleep-tools">Ожидание tools: —</p>
+    <p>Неизвестные прерванные tools удерживают сон на паузе даже после перезапуска. Снимайте ожидание только после проверки, что внешние tools остановлены.</p>
+    <div class="model-actions"><button class="chip" id="sleep-release-tools" type="button" disabled>Снять ожидание прерванных tools</button></div>
+    <button class="chip" id="sleep-snapshot-btn" type="button" aria-controls="sleep-snapshot" disabled>Снимок · загрузить</button>
+    <pre id="sleep-snapshot" aria-label="Публичный снимок режима сна" tabindex="0">Снимок ещё не загружен.</pre>
+  </details>
+</section>
+
+<section class="hero">
+  <div class="pitch">
+    <span class="chip">⚡ мультиагентная система · онлайн-мониторинг</span>
+    <h1>Рой ИИ-агентов, который <span class="grad">решает сложные задачи параллельно</span></h1>
+    <p>Обычный чат-бот думает над задачей один и по порядку. ROI Swarm сначала оценивает задачу:
+      простую решает сильнейшая модель сама, а сложную делит на десятки независимых частей
+      и раздаёт их рою агентов, которые работают <b>одновременно</b>. Потом всё проверяется
+      и собирается в один ответ.</p>
+    <ul class="feats">
+      <li><span class="ic">🧠</span><span><b>Умная маршрутизация.</b> Простой вопрос не тратит ресурсы роя: модель отвечает напрямую.</span></li>
+      <li><span class="ic">🐝</span><span><b>Десятки агентов сразу.</b> Сколько частей в плане, столько агентов работает параллельно.</span></li>
+      <li><span class="ic">🛡️</span><span><b>Автопроверка.</b> Слабые или пустые ответы агентов перезапускаются автоматически.</span></li>
+      <li><span class="ic">📚</span><span><b>Своя база знаний.</b> Агенты опираются на ваши документы (RAG).</span></li>
+    </ul>
+    <div class="totals">
+      <div class="tot"><b id="t-runs">0</b><span>задач решено</span></div>
+      <div class="tot"><b id="t-agents">0</b><span>агентов запущено</span></div>
+      <div class="tot"><b id="t-max">0</b><span>максимум агентов в одной задаче</span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="swarm-graph"></canvas>
+    <div class="ov tl">
+      <span class="mode" id="mode">ожидание задачи</span>
+      <div class="big" id="big">0</div>
+      <div class="cap" id="bigcap">агентов в работе</div>
+    </div>
+    <div class="ov tr">
+      <div class="chip" id="timer">⏱ 0.0 с</div>
+    </div>
+    <div class="ov bl">
+      <div class="legend">
+        <span><i style="background:var(--opus)"></i>план и итог</span>
+        <span><i style="background:var(--cyan)"></i>агент работает</span>
+        <span><i style="background:var(--green)"></i>готово</span>
+        <span><i style="background:var(--red)"></i>ошибка / перезапуск</span>
+      </div>
+      <div class="reqline" id="reqline" title="">Отправьте запрос через Hermes или API — рой оживёт здесь в реальном времени.</div>
+    </div>
+  </div>
+</section>
+
+<h2>Как это работает — живой статус текущей задачи</h2>
+<p class="pipe-note">Подписи моделей ниже — текущая конфигурация для новых запросов, не модели выбранного исторического запуска.</p>
+<section class="pipe">
+  <div class="step" data-step="route"><div class="n">01 · ОЦЕНКА</div><b>Анализ задачи</b><p>Модель оценивает сложность и решает, нужен ли рой.</p><div class="who" data-model-role="router">модель загружается…</div></div>
+  <div class="step" data-step="plan"><div class="n">02 · ПЛАН</div><b>Деление на части</b><p>Задача режется на атомарные независимые подзадачи.</p><div class="who" data-model-role="planner">модель загружается…</div></div>
+  <div class="step" data-step="swarm"><div class="n">03 · РОЙ</div><b>Параллельная работа</b><p>Каждый агент решает свою часть одновременно с остальными.</p><div class="who" data-model-role="worker">модель загружается…</div></div>
+  <div class="step" data-step="verify"><div class="n">04 · ПРОВЕРКА</div><b>Контроль качества</b><p>Пустые и неуверенные ответы отправляются на повтор.</p><div class="who" data-model-role="critic">verifier: код · critic: загрузка…</div></div>
+  <div class="step" data-step="final"><div class="n">05 · ИТОГ</div><b>Единый ответ</b><p>Результаты сводятся в один связный ответ без повторов.</p><div class="who" data-model-role="synthesizer">модель загружается…</div></div>
+</section>
+
+<h2>Текущая задача в цифрах</h2>
+<section class="kpis">
+  <div class="kpi"><span>Статус</span><b id="k-status">—</b><small id="k-status-s">&nbsp;</small></div>
+  <div class="kpi"><span>Режим</span><b id="k-mode">—</b><small id="k-mode-s">&nbsp;</small></div>
+  <div class="kpi"><span>Агентов</span><b id="k-agents">0</b><small id="k-agents-s">одновременно</small></div>
+  <div class="kpi"><span>Готово</span><b id="k-done">0%</b><small id="k-done-s">&nbsp;</small></div>
+  <div class="kpi"><span>Время</span><b id="k-time">—</b><small id="k-time-s">&nbsp;</small></div>
+  <div class="kpi"><span>Контекст</span><b id="k-ctx">—</b><small id="k-ctx-s">&nbsp;</small></div>
+</section>
+
+<section class="grid">
+  <div class="card runs-card"><h3>История задач <em id="runs-count"></em></h3><div class="runs" id="runs"></div></div>
+  <div style="display:grid;gap:14px;min-width:0">
+    <div class="card">
+      <h3>Оценка задачи <em id="tasktype"></em></h3>
+      <div class="verdict" id="verdict">Ожидание оценки…</div>
+      <div class="bars">
+        <div class="bar"><span>Сложность<b id="b-complexity-v"></b></span><div><i id="b-complexity"></i></div></div>
+        <div class="bar"><span>Насколько делится на части<b id="b-parallelizability-v"></b></span><div><i id="b-parallelizability"></i></div></div>
+        <div class="bar"><span>Неопределённость<b id="b-uncertainty-v"></b></span><div><i id="b-uncertainty"></i></div></div>
+        <div class="bar"><span>Цена ошибки<b id="b-stakes-v"></b></span><div><i id="b-stakes"></i></div></div>
+      </div>
+    </div>
+    <div class="card"><h3>Подзадачи агентов <em id="tasks-count"></em></h3><div class="tasks" id="tasks"><div class="empty">Подзадачи появятся после планирования</div></div></div>
+  </div>
+  <div style="display:grid;gap:14px;align-content:start;min-width:0">
+    <div class="card"><h3>Запрос</h3><div class="answer" id="prompt" style="max-height:120px">—</div></div>
+    <div class="card"><h3>Ответ роя</h3><div class="answer" id="answer">—</div></div>
+    <div class="card"><h3>Лента событий <em id="ev-count"></em></h3><div class="events" id="events"></div></div>
+  </div>
+</section>
+
+<section class="cta">
+  <div>
+    <h3>Такой рой — <span class="grad">для вашего бизнеса</span></h3>
+    <p>Настройка и подключение ROI Swarm под ваши задачи: аналитика, исследования рынка,
+      обработка документов, поддержка клиентов. Работает через привычный чат (OpenAI-совместимый API),
+      с вашей базой знаний и прозрачным мониторингом каждого шага.</p>
+  </div>
+  <ul>
+    <li>Подключение к вашим моделям и ключам</li>
+    <li>Загрузка ваших документов в базу знаний</li>
+    <li>Настройка числа агентов и порога «рой / один ответ»</li>
+    <li>Живой дашборд, как этот, для контроля</li>
+  </ul>
+</section>
+<footer>ROI Swarm · LangGraph · настраиваемые модели · данные обновляются каждые 1.2 с</footer>
+</div>
+
+<script>
+/* ---------- данные ---------- */
+let activeId=null, current=null, pinned=false;
+const qp=new URLSearchParams(location.hash.slice(1));
+if(qp.get('token')){localStorage.setItem('roiToken',qp.get('token'));history.replaceState(null,'',location.pathname)}
+const authHeaders=()=>{const t=localStorage.getItem('roiToken');return t?{Authorization:'Bearer '+t}:{}};
+function askToken(){const t=prompt('Токен доступа к дашборду (ROI_SWARM_API_KEY)');if(t)localStorage.setItem('roiToken',t.trim())}
+document.getElementById('token-btn').onclick=()=>{askToken();refresh();modelSettings.refreshSettings()};
+let asked=false;
+async function api(p){const r=await fetch(p,{headers:authHeaders()});if(r.status===401){if(!asked){asked=true;askToken()}throw new Error('401')}if(!r.ok)throw new Error(r.status);return r.json()}
+const $=id=>document.getElementById(id);
+/* ---------- model configuration ---------- */
+const modelSettings=(()=>{
+  const roles=['router','planner','worker','critic','synthesizer'];
+  const inputs=Object.fromEntries(roles.map(role=>[role,$('model-'+role)]));
+  let saved=null,dirty=false,pending=false,settingsLoading=false,catalogLoading=false,revision=0;
+  const values=()=>Object.fromEntries(roles.map(role=>[role,inputs[role].value]));
+  function status(message,kind='info'){
+    $('model-status').textContent=message;$('model-status').dataset.kind=kind;
+  }
+  function controls(){
+    dirty=!!saved&&roles.some(role=>inputs[role].value!==saved[role]);
+    $('model-config').dataset.dirty=String(dirty);
+    $('model-config').setAttribute('aria-busy',String(pending||settingsLoading||catalogLoading));
+    roles.forEach(role=>inputs[role].disabled=pending||!saved);
+    $('model-apply').disabled=pending||!dirty||roles.some(role=>!inputs[role].value.trim());
+    $('model-discard').disabled=pending||!dirty;
+    $('model-refresh').disabled=pending||catalogLoading;
+  }
+  function validateSettings(data){
+    if(!data||!data.roles||!roles.every(role=>typeof data.roles[role]==='string'&&data.roles[role].trim())
+      ||!Number.isInteger(data.active_operations)||data.active_operations<0)throw new Error('Некорректный ответ настроек.');
+    return data;
+  }
+  function accept(data){
+    saved=Object.fromEntries(roles.map(role=>[role,data.roles[role]]));
+    roles.forEach(role=>inputs[role].value=saved[role]);
+    document.querySelectorAll('.who[data-model-role]').forEach(el=>{
+      const role=el.dataset.modelRole;
+      el.textContent=(role==='critic'?'verifier: код · critic: ':'')+saved[role];
+    });
+    $('model-activity').textContent='Активные операции: '+data.active_operations+
+      (data.active_operations?' · применение может быть недоступно до их завершения':'');
+    const limits=data.context_limits||{};
+    const contextTokens=value=>Number.isInteger(value)&&value>0?String(value):'—';
+    $('model-context-limits').textContent='Контекст (токены, только просмотр): Worker '+contextTokens(limits.worker_context_tokens)+
+      ' · Main '+contextTokens(limits.main_context_tokens);
+  }
+  function httpError(code,saving=false){
+    const messages={
+      401:'401: нужен токен доступа — используйте кнопку «токен».',
+      409:'409: система занята активными операциями. Изменения сохранены в форме; повторите применение после завершения запросов.',
+      422:'422: настройки не прошли проверку. Проверьте ID всех пяти моделей; изменения остались в форме.',
+      503:saving?'503: не удалось сохранить настройки на диск. Изменения остались в форме; повторите позже.':'503: сервис временно недоступен; повторите позже.'
+    };
+    return new Error(messages[code]||'Ошибка HTTP '+code+'. Повторите попытку.');
+  }
+  async function request(url,options={}){
+    const response=await fetch(url,{...options,headers:{...authHeaders(),...(options.headers||{})}});
+    if(!response.ok)throw httpError(response.status,options.method==='PUT');
+    return response.json();
+  }
+  async function refreshSettings(){
+    if(dirty||pending||settingsLoading||document.hidden)return;
+    const started=revision,initial=!saved;
+    settingsLoading=true;controls();
+    if(initial)status('Загрузка настроек…');
+    try{
+      const data=validateSettings(await request('/api/model-settings'));
+      // An in-flight poll must not overwrite edits (even an edit followed by discard).
+      if(revision!==started||dirty||pending)return;
+      accept(data);
+      if(initial||$('model-status').dataset.kind==='error')status('Настройки загружены. Изменений нет.');
+    }catch(error){
+      if(revision===started&&!dirty&&!pending)status('Не удалось загрузить настройки: '+error.message,'error');
+    }finally{settingsLoading=false;controls()}
+  }
+  async function refreshCatalog(){
+    if(catalogLoading||pending)return;
+    catalogLoading=true;controls();$('model-catalog').textContent='Каталог: загрузка…';
+    try{
+      const data=await request('/api/model-options');
+      if(!data||!Array.isArray(data.models)||!data.models.every(id=>typeof id==='string')
+        ||!['provider','configured'].includes(data.source))throw new Error('Некорректный ответ каталога.');
+      const options=[...new Set(data.models)].map(id=>{
+        const option=document.createElement('option');option.value=id;option.textContent=id;return option;
+      });
+      $('model-options').replaceChildren(...options);
+      $('model-catalog').textContent='Каталог: '+(data.source==='provider'?'провайдер':'настроенные модели')+
+        ' · '+options.length+(typeof data.warning==='string'?' · '+data.warning:'');
+    }catch(error){$('model-catalog').textContent='Каталог недоступен: '+error.message+' · После загрузки настроек можно ввести ID вручную. Список вариантов не изменён.'}
+    finally{catalogLoading=false;controls()}
+  }
+  $('model-form').addEventListener('submit',async event=>{
+    event.preventDefault();
+    if(pending||!dirty)return;
+    const proposed=values();
+    if(roles.some(role=>!proposed[role].trim())){status('Укажите ID модели для всех пяти ролей.','error');return}
+    pending=true;revision++;controls();status('Сохранение настроек…');
+    try{
+      const data=validateSettings(await request('/api/model-settings',{
+        method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({roles:proposed})
+      }));
+      accept(data);status('Настройки сохранены — применяются к новым запросам.','success');
+    }catch(error){status('Не удалось применить настройки: '+error.message,'error')}
+    finally{pending=false;controls()}
+  });
+  roles.forEach(role=>inputs[role].addEventListener('input',()=>{
+    revision++;controls();status(dirty?'Есть несохранённые изменения. Примените или отмените их.':'Изменений нет.');
+  }));
+  $('model-discard').addEventListener('click',()=>{
+    if(pending||!saved)return;
+    revision++;roles.forEach(role=>inputs[role].value=saved[role]);controls();status('Изменения отменены.');
+  });
+  $('model-refresh').addEventListener('click',refreshCatalog);
+  return{refreshSettings,refreshCatalog};
+})();
+/* ---------- end model configuration ---------- */
+/* ---------- sleep configuration ---------- */
+const sleepSettings=(()=>{
+  const toggle=$('sleep-enabled');
+  let saved=null,ready=false,loading=false,saving=false,snapshotLoading=false,revision=0,snapshotNext=null;
+  const text=value=>value==null?'—':typeof value==='object'?JSON.stringify(value):String(value);
+  const limit=value=>value===null?'без лимита':text(value);
+  function status(message,kind='info'){
+    $('sleep-status').textContent=message;$('sleep-status').dataset.kind=kind;
+  }
+  function controls(){
+    toggle.disabled=saving||!ready;
+    $('sleep-config').setAttribute('aria-busy',String(loading||saving||snapshotLoading));
+    $('sleep-snapshot-btn').disabled=!ready||saving||snapshotLoading;
+    $('sleep-release-tools').disabled=!ready||saving||!(saved?.pending_tool_turns>0||saved?.tool_lease_recovery_hold);
+  }
+  async function request(url,options={}){
+    const response=await fetch(url,{...options,headers:{...authHeaders(),...(options.headers||{})}});
+    if(!response.ok){
+      const errors={401:'401: нужен токен доступа — используйте кнопку «токен».',409:'409: есть активные запросы; ожидание tools не снято.',503:'503: хранилище или сервис недоступны; повторите позже.'};
+      throw new Error(errors[response.status]||'HTTP '+response.status);
+    }
+    return response.json();
+  }
+  function accept(data){
+    if(!data||typeof data.enabled!=='boolean'||typeof data.state!=='string')throw new Error('Некорректный ответ режима сна.');
+    saved=data;ready=true;toggle.checked=data.enabled;
+    $('sleep-state').textContent=data.state;
+    $('sleep-mode').textContent=data.enabled?'включён':'выключен';
+    $('sleep-model').textContent=text(data.model);
+    $('sleep-foreground').textContent=text(data.foreground_count);
+    $('sleep-calls').textContent=text(data.daily_calls);
+    $('sleep-daily-limit').textContent=limit(data.daily_call_limit);
+    $('sleep-cycle-limit').textContent=limit(data.max_steps_per_cycle);
+    $('sleep-steps').textContent=text(data.step_count);
+    $('sleep-pending').textContent=text(data.pending_cycles);
+    $('sleep-next-step').textContent=text(data.next_step??snapshotNext);
+    $('sleep-error').textContent=text(data.last_error);
+    $('sleep-error').hidden=!data.last_error;
+    $('sleep-tools').textContent='Ожидание tools: '+text(data.pending_tool_turns)+
+      (data.tool_lease_recovery_hold?' · удержание после восстановления':'');
+    $('sleep-improvement').textContent='Автоулучшение: '+(typeof data.auto_improve==='boolean'?(data.auto_improve?'включено':'выключено')+' · ':'')+
+      text(data.auto_improve_state)+(data.auto_improve_reason?' · '+text(data.auto_improve_reason):'');
+    $('sleep-restart').hidden=!data.restart_required;
+    $('sleep-restart').textContent=data.restart_required?'Требуется перезапуск сервиса — выполняется отдельно.':'';
+  }
+  async function refresh(){
+    if(loading||saving||document.hidden)return;
+    const started=revision;loading=true;controls();
+    try{
+      const data=await request('/api/sleep');
+      if(started!==revision||saving)return;
+      accept(data);status('Состояние обновлено.');
+    }catch(error){
+      if(started===revision&&!saving){
+        ready=false;$('sleep-state').textContent='Недоступно · данные не подтверждены';
+        status('Не удалось загрузить режим сна: '+error.message,'error');
+      }
+    }finally{loading=false;controls()}
+  }
+  toggle.addEventListener('change',async()=>{
+    if(saving||!ready){toggle.checked=!!saved?.enabled;return}
+    const enabled=toggle.checked;saving=true;revision++;controls();status('Сохранение режима сна…');
+    try{
+      await request('/api/sleep',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});
+      ready=false;
+      accept(await request('/api/sleep'));
+      status('Режим сна '+(saved.enabled?'включён.':'выключен.'),'success');
+    }catch(error){toggle.checked=!!saved?.enabled;status('Не удалось подтвердить настройку: '+error.message,'error')}
+    finally{saving=false;controls()}
+  });
+  $('sleep-release-tools').addEventListener('click',async()=>{
+    if(!ready||saving||!(saved?.pending_tool_turns>0||saved?.tool_lease_recovery_hold))return;
+    if(!confirm('Подтвердите: все внешние tools прерванного запроса остановлены и больше не выполняются. Снять ожидание и разрешить режиму сна продолжить работу?'))return;
+    saving=true;revision++;controls();status('Снятие ожидания прерванных tools…');
+    try{
+      await request('/api/sleep/release-tools',{method:'POST'});
+      ready=false;accept(await request('/api/sleep'));
+      status('Ожидание tools снято; состояние перечитано.','success');
+    }catch(error){status('Не удалось подтвердить снятие ожидания: '+error.message,'error')}
+    finally{saving=false;controls()}
+  });
+  $('sleep-snapshot-btn').addEventListener('click',async()=>{
+    if(snapshotLoading||saving||!ready)return;
+    snapshotLoading=true;controls();status('Загрузка публичного снимка…');
+    try{
+      const data=await request('/api/sleep/snapshot');
+      if(!data||!Array.isArray(data.queue))throw new Error('Некорректный публичный снимок.');
+      $('sleep-snapshot').textContent=JSON.stringify(data,null,2);
+      snapshotNext=data.current?.next_step??data.queue.find(item=>item?.next_step!=null)?.next_step??null;
+      $('sleep-next-step').textContent=text(snapshotNext);
+      status('Публичный снимок загружен.','success');
+    }catch(error){status('Не удалось загрузить снимок: '+error.message,'error')}
+    finally{snapshotLoading=false;controls()}
+  });
+  controls();
+  return{refresh};
+})();
+/* ---------- end sleep configuration ---------- */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const workersOf=r=>Object.keys(r.nodes||{}).filter(k=>k.startsWith('worker:'));
+const isDirect=r=>!!(r.nodes||{}).direct||((r.nodes||{}).planner||{}).mode==='direct';
+function dur(r){const a=Date.parse(r.created_at),b=r.status==='running'?Date.now():Date.parse(r.updated_at);return Math.max(0,(b-a)/1000)}
+const fmtT=s=>s<60?s.toFixed(1)+' с':Math.floor(s/60)+' мин '+Math.round(s%60)+' с';
+const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<12||h>14)?b:c};
+const agentsW=n=>n+' '+plural(n,'агент','агента','агентов');
+const ST={running:'в работе',tool:'в работе',completed:'готово',failed:'ошибка',queued:'в очереди',merged:'слито',conflict:'конфликт',discarded:'отброшено',isolation:'worktree'};
+
+async function refresh(){
+  sleepSettings.refresh();
+  try{
+    const list=await api('/api/runs');renderTotals(list);renderRuns(list);
+    if(!pinned&&list.length)activeId=list[0].id;
+    if(activeId){current=await api('/api/runs/'+encodeURIComponent(activeId));renderRun(current)}
+    $('connection').textContent='система онлайн';$('conn-dot').className='dot';
+  }catch(e){$('connection').textContent=e.message==='401'?'нужен токен':'переподключение…';$('conn-dot').className='dot off'}
+}
+function renderTotals(list){
+  $('t-runs').textContent=list.filter(r=>r.status==='completed').length;
+  let tot=0,mx=0;list.forEach(r=>{const n=workersOf(r).length;tot+=n;mx=Math.max(mx,n)});
+  $('t-agents').textContent=tot;$('t-max').textContent=mx;$('runs-count').textContent=list.length;
+}
+function renderRuns(list){
+  const root=$('runs');
+  if(!list.length){root.innerHTML='<div class="empty">Пока нет запусков</div>';return}
+  root.innerHTML=list.map(r=>{const n=workersOf(r).length,m=isDirect(r)?'Прямой ответ':(n?agentsW(n):'—');
+    return `<button class="run ${r.id===activeId?'on':''}" data-id="${esc(r.id)}"><b>${esc(r.request)}</b><small><span class="st-${esc(r.status)}">${ST[r.status]||esc(r.status)}</span><span>${m} · ${fmtT(dur(r))}</span></small></button>`}).join('');
+  root.querySelectorAll('.run').forEach(b=>b.onclick=()=>{activeId=b.dataset.id;pinned=b!==root.firstElementChild;refresh()});
+}
+function stageOf(r){
+  const n=r.nodes||{};
+  if(r.status==='completed')return 'done';
+  if(n.synthesizer||n.direct)return 'final';
+  if(n['retry-planner']&&n['retry-planner'].status)return 'swarm';
+  if(n.verifier)return 'verify';
+  if(workersOf(r).length)return 'swarm';
+  if(n.planner)return isDirect(r)?'final':'swarm';
+  if(n.router)return 'plan';
+  return 'route';
+}
+function renderRun(r){
+  const n=r.nodes||{},ws=workersOf(r),direct=isDirect(r),running=r.status==='running';
+  const done=ws.filter(k=>n[k].status==='completed').length,failed=ws.filter(k=>n[k].status==='failed').length;
+  const working=ws.length-done-failed;
+  const a=(n.router||{}).assessment||null,ctx=n.context||{};
+  /* hero overlay */
+  const m=$('mode');
+  if(direct){m.className='mode direct';m.textContent='прямой ответ · без роя'}
+  else if(ws.length){m.className='mode swarm';m.textContent='режим роя'}
+  else{m.className='mode';m.textContent=running?'оценка задачи…':'ожидание задачи'}
+  $('big').textContent=direct?1:(running?working||ws.length:ws.length);
+  $('bigcap').textContent=direct?'одна модель · без роя':(running?'агентов работает сейчас':'агентов участвовало');
+  $('reqline').textContent=r.request;$('reqline').title=r.request;
+  $('timer').textContent='⏱ '+fmtT(dur(r));
+  /* pipeline */
+  const order=['route','plan','swarm','verify','final'],st=stageOf(r),idx=st==='done'?99:order.indexOf(st);
+  document.querySelectorAll('.step').forEach(el=>{const i=order.indexOf(el.dataset.step);
+    const skip=direct&&(el.dataset.step==='swarm'||el.dataset.step==='verify');
+    el.className='step'+(skip?' skip':i<idx?' done':i===idx?' active':'')});
+
+  /* kpi */
+  $('k-status').innerHTML=`<span class="st-${esc(r.status)}">${ST[r.status]||esc(r.status)}</span>`;
+  $('k-status-s').textContent=r.error?String(r.error).slice(0,40):new Date(r.created_at).toLocaleString();
+  $('k-mode').textContent=direct?'Прямой':(ws.length?'Рой':'—');
+  $('k-mode-s').textContent=direct?'≤3 частей — без роя':(ws.length?'параллельно, без лимита':'');
+  $('k-agents').textContent=direct?1:ws.length;
+  $('k-agents-s').textContent=direct?'одна сильная модель':(r.worker_target?'ориентир роутера: '+r.worker_target:'одновременно');
+  const pct=direct?(r.status==='completed'?100:0):(ws.length?Math.round(100*done/ws.length):0);
+  $('k-done').textContent=pct+'%';$('k-done-s').textContent=direct?'':`${done} ок · ${failed} ошибок`;
+  $('k-time').textContent=fmtT(dur(r));
+  const seq=ws.length>1&&!direct?dur(r)*ws.length:0;
+  $('k-time-s').textContent=seq?'по очереди было бы ~'+fmtT(seq):' ';
+  $('k-ctx').textContent=(ctx.packed_tokens_estimate||0)+' ток';
+  $('k-ctx-s').textContent=(ctx.rag_fragments||0)+' фрагм. из базы знаний';
+  /* assessment */
+  $('tasktype').textContent=a?a.task_type:'';
+  ['complexity','parallelizability','uncertainty','stakes'].forEach(k=>{const v=a?a[k]||0:0;$('b-'+k).style.width=(v*100)+'%';$('b-'+k+'-v').textContent=a?' '+Math.round(v*100)+'%':''});
+  const plannerN=(n.planner||{}).task_count;
+  $('verdict').innerHTML=!a?'Ожидание оценки…':direct
+    ?`Задача простая${plannerN?` (план: ${plannerN} ч.)`:''} — рой не нужен. Модель отвечает напрямую.`
+    :`Задача требует роя. План: <b>${ws.length||'…'}</b> независимых подзадач — все решаются <b>одновременно</b> агентами.`;
+  /* tasks */
+  $('tasks-count').textContent=ws.length?`${done}/${ws.length}`:'';
+  $('tasks').innerHTML=ws.length?ws.map(k=>{const d=n[k],s=(d.status==='queued'||d.status==='running'||d.status==='tool')&&running?'working':d.status;
+    return `<div class="task ${esc(s)}"><div class="h"><span>${esc(k.slice(7))} · ${esc(d.role||'')}</span><span>${s==='working'?'в работе':ST[s]||esc(s)}${d.confidence?' · '+Math.round(d.confidence*100)+'%':''}</span></div>${esc(d.objective||'')}${d.tool?`<div class="h"><span>🔧 ${esc(d.tool)}${d.tool_calls?' · вызовов: '+esc(d.tool_calls):''}</span></div>`:''}</div>`}).join('')
+    :`<div class="empty">${direct?'Рой не запускался — модель ответила напрямую':'Подзадачи появятся после планирования'}</div>`;
+  $('prompt').textContent=r.request;
+  $('answer').textContent=r.answer??(r.status==='failed'?(r.error||'Ошибка'):'Рой работает…');
+  $('ev-count').textContent=(r.events||[]).length;
+  $('events').innerHTML=(r.events||[]).slice(-80).reverse().map(e=>`<div class="ev"><time>${new Date(e.time).toLocaleTimeString()}</time><span>${esc(e.node)}${e.data&&e.data.tool?' → '+esc(e.data.tool):''}${e.data&&e.data.wave&&e.node==='wave'?' '+esc(e.data.wave):''}</span><em class="st-${esc(e.status)}">${ST[e.status]||esc(e.status)}</em></div>`).join('');
+  swarm.sync(r);
+}
+
+/* ---------- лёгкая 3D-визуализация (Canvas 2D + перспектива, без библиотек) ---------- */
+const swarm=(()=>{
+  const cv=$('swarm-graph'),cx=cv.getContext('2d');
+  let W=0,H=0,dpr=1,agents=[],packets=[],mode='idle',rot=0,lastKey='';
+  const COL={opus:[255,179,107],work:[56,225,255],done:[62,240,163],fail:[255,107,129],idle:[139,123,255]};
+  function resize(){dpr=Math.min(window.devicePixelRatio||1,1.5);const b=cv.getBoundingClientRect();W=b.width;H=b.height;cv.width=W*dpr;cv.height=H*dpr;cx.setTransform(dpr,0,0,dpr,0,0)}
+  window.addEventListener('resize',resize);resize();
+  function fib(i,n){const y=1-2*(i+.5)/n,r=Math.sqrt(1-y*y),t=i*2.399963;return[Math.cos(t)*r,y,Math.sin(t)*r]}
+  function build(count,state){
+    agents=[];const n=Math.max(count,1);
+    for(let i=0;i<n;i++){const p=fib(i,n),rad=1+((i*37)%10)/40;agents.push({b:p.map(v=>v*rad),s:state(i),ph:Math.random()*6.28})}
+  }
+  build(48,()=> 'idle');
+  function sync(r){
+    const n=r.nodes||{},ws=Object.keys(n).filter(k=>k.startsWith('worker:'));
+    const direct=!!n.direct||(n.planner||{}).mode==='direct';
+    mode=direct?'direct':ws.length?'swarm':(r.status==='running'?'think':'idle');
+    const key=mode+':'+ws.length;
+    if(key!==lastKey){lastKey=key;build(mode==='swarm'?ws.length:48,()=> 'idle')}
+    if(mode==='swarm')ws.forEach((k,i)=>{const s=n[k].status;agents[i].s=s==='completed'?'done':s==='failed'?'fail':(r.status==='running'?'work':'done')});
+    else agents.forEach(a=>a.s='idle');
+  }
+  function proj(x,y,z){const f=3.2/(3.2+z);const R=Math.min(W,H)*0.28;return[W/2+x*R*f,H*0.44+y*R*f,f]}
+  let last=0;
+  function frame(t){
+    requestAnimationFrame(frame);
+    if(document.hidden||t-last<33)return; // ~30 fps, пауза в фоне
+    const dt=Math.min(.1,(t-last)/1000);last=t;
+    rot+=dt*(mode==='swarm'?.35:mode==='think'?.6:.12);
+    cx.clearRect(0,0,W,H);
+    const cr=Math.cos(rot),sr=Math.sin(rot),tilt=.38,ct=Math.cos(tilt),st=Math.sin(tilt);
+    const pts=agents.map(a=>{let[x,y,z]=a.b;const br=1+.04*Math.sin(t/700+a.ph);x*=br;y*=br;z*=br;
+      let X=x*cr-z*sr,Z=x*sr+z*cr;let Y=y*ct-Z*st;Z=y*st+Z*ct;
+      if(mode==='direct'){X*=.55;Y*=.55;Z*=.55}
+      const[px,py,f]=proj(X,Y,Z);return{px,py,f,Z,a}});
+    /* связи с ядром */
+    const core=[W/2,H*0.44];
+    if(mode==='swarm'){cx.lineWidth=1;pts.forEach(p=>{const c=COL[p.a.s==='idle'?'work':p.a.s];
+      cx.strokeStyle=`rgba(${c},${.05+.10*p.f})`;cx.beginPath();cx.moveTo(core[0],core[1]);cx.lineTo(p.px,p.py);cx.stroke()});
+      if(Math.random()<.5&&packets.length<160){const w=pts.filter(p=>p.a.s==='work');const p=(w.length?w:pts)[Math.floor(Math.random()*(w.length||pts.length))];if(p)packets.push({a:p.a,k:0,out:Math.random()<.5})}
+    }
+    /* ядро: планирование и синтез */
+    const pulse=1+.08*Math.sin(t/400),cR=(mode==='direct'?34:22)*pulse;
+    const g=cx.createRadialGradient(core[0],core[1],0,core[0],core[1],cR*3.2);
+    g.addColorStop(0,'rgba(255,220,180,.95)');g.addColorStop(.25,'rgba(255,179,107,.55)');g.addColorStop(1,'rgba(255,179,107,0)');
+    cx.fillStyle=g;cx.beginPath();cx.arc(core[0],core[1],cR*3.2,0,6.283);cx.fill();
+    /* орбиты */
+    cx.strokeStyle='rgba(139,123,255,.12)';cx.lineWidth=1;
+    for(const k of[1.05,1.3]){cx.beginPath();cx.ellipse(core[0],core[1],Math.min(W,H)*.28*k,Math.min(W,H)*.28*k*.38,0,0,6.283);cx.stroke()}
+    /* пакеты данных */
+    const byA=new Map(pts.map(p=>[p.a,p]));
+    packets=packets.filter(pk=>{pk.k+=dt*1.4;if(pk.k>=1)return false;const p=byA.get(pk.a);if(!p)return false;const k=pk.out?pk.k:1-pk.k;
+      const x=core[0]+(p.px-core[0])*k,y=core[1]+(p.py-core[1])*k;cx.fillStyle=pk.out?'rgba(255,200,150,.9)':'rgba(120,240,255,.9)';cx.beginPath();cx.arc(x,y,1.8,0,6.283);cx.fill();return true});
+    /* агенты (сортировка по глубине) */
+    pts.sort((a,b)=>b.Z-a.Z).forEach(p=>{
+      const c=COL[p.a.s],sz=(mode==='swarm'?4.2:2.6)*p.f*(p.a.s==='work'?1+.25*Math.sin(t/180+p.a.ph):1);
+      const al=mode==='idle'?.35+.25*p.f:.55+.45*p.f;
+      cx.fillStyle=`rgba(${c},${al*.18})`;cx.beginPath();cx.arc(p.px,p.py,sz*3,0,6.283);cx.fill();
+      cx.fillStyle=`rgba(${c},${al})`;cx.beginPath();cx.arc(p.px,p.py,sz,0,6.283);cx.fill()});
+  }
+  requestAnimationFrame(frame);
+  return{sync};
+})();
+
+modelSettings.refreshSettings();modelSettings.refreshCatalog();setInterval(modelSettings.refreshSettings,6000);
+refresh();setInterval(refresh,1200);
+</script>
+</body>
+</html>

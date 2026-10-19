@@ -1,0 +1,51 @@
+# Окружение
+.venv/
+.python/
+venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.cache/
+*.py[cod]
+
+# Секреты и данные клиента — никогда не коммитить
+.env
+.env.*
+.env-*
+!.env.example
+runs/
+data/
+*.sqlite
+*.sqlite-*
+*.db
+*.log
+
+# Локальные модели в поставку не входят
+*.gguf
+*.onnx
+*.safetensors
+*.bin
+
+# Временное
+.tmp_*
+.request.json
+*.xlsx
+artifacts/
+experience/
+swarm_reports/
+dist/
+build/
+*.pem
+*.key
+
+# Runtime assets and generated machine-specific local configuration
+runtime/
+models/
+download/
+cache/
+hermes/
+janas/
+tools/
+.roi-swarm-local-install
+local/settings.yaml
+local/models.ini

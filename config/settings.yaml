@@ -1,0 +1,92 @@
+provider:
+  base_url: ${ROI_PROVIDER_BASE_URL}
+  api_key: ${ROI_PROVIDER_API_KEY}
+  timeout_seconds: null  # без таймаута
+  max_retries: 2
+  api_mode: chat_completions  # Opus через прокси работает только так
+
+models:
+  router:
+    model: gpt-6-luna
+    temperature: 0.0
+    max_output_tokens: 2000
+  planner:
+    model: claude-opus-5-5
+    temperature: 0.1
+    max_output_tokens: 12000
+  worker:
+    model: gpt-6-luna
+    temperature: 0.2
+    max_output_tokens: 5000
+  critic:
+    model: gpt-6-luna
+    temperature: 0.1
+    max_output_tokens: 5000
+  synthesizer:
+    model: claude-opus-5-5
+    temperature: 0.1
+    max_output_tokens: 16000
+
+# Стриминговый режим: одна задача = один стрим; воркеры — полноценные агенты Hermes
+# со всеми tools; центральный агент (planner) проверяет волну и при нужде запускает новую.
+hermes_workers:
+  enabled: true
+  # Воркеры-агенты нужны только если на сервере стоит Hermes; без него рой работает
+  # через координатор (Opus + параллельные Luna), этот режим просто не включается.
+  python: ""  # пусто = venv внутри root
+  root: ""  # пусто = $HERMES_HOME/hermes-agent (~/.hermes или %LOCALAPPDATA%/hermes)
+  default_cwd: ""  # пусто = каталог из системного промпта Hermes, иначе каталог роя
+  max_iterations: 60  # вызовов модели внутри одного воркера
+  maximum_waves: 4
+  isolate_worktrees: true  # свой git worktree на каждого воркера волны, потом слияние
+  worktree_root: ""  # пусто = системный TEMP/roi-waves
+  linked_dirs: [.venv, node_modules]  # игнорируемые тяжёлые папки подключаются ссылкой
+
+swarm:
+  minimum_workers: 10
+  maximum_workers: 70
+  maximum_concurrency: null  # без ограничения параллельности
+  direct_answer_max_workers: 3  # <=3 подзадач -> Opus отвечает сам, больше -> рой Luna
+  expansion_batch: 10
+  maximum_rounds: 5
+  fast_path_enabled: true
+  # Сколько результатов Luna-воркеров сжимает один Luna-лидер группы перед Terra.
+  # Нужно для 100–200 агентов: Terra получает ~N/15 сводок, а не N сырых ответов.
+  aggregation_group_size: 15
+
+context:
+  artifact_threshold_chars: 8000
+  recent_messages: 8
+  worker_context_tokens: 800000  # роутер, воркеры, критик
+  main_context_tokens: 1000000  # планировщик, синтезатор, координатор Hermes
+  token_encoding: o200k_base  # локальный reference tokenizer; учёт провайдера может отличаться
+  maximum_pack_chars: null  # прежний лимит 12000 символов отключён
+  planner_input_limit_chars: null  # прежний лимит 500000 символов отключён
+
+rag:
+  enabled: true
+  database_path: data/rag/rag.sqlite
+  top_k: 6
+  collections: []  # legacy: не используется как неявная общая база
+  project_collections: {}  # пример: {myproject: [myproject_docs]}
+  # Без локальных моделей: поиск BM25. Векторный поиск — локальная ONNX-модель,
+  # включается ROI_RAG_EMBEDDINGS=true после `uv sync --extra embeddings`.
+  embeddings_enabled: ${ROI_RAG_EMBEDDINGS:-false}
+  embedding_model: ibm-granite/granite-embedding-97m-multilingual-r2
+  embedding_dimension: 384
+
+experience:
+  enabled: true
+  database_path: data/experience/experience.sqlite
+  maximum_lessons: 6  # только подтверждённые рекомендации, не исходники проекта
+
+# Режим сна включён по умолчанию и тратит запросы провайдера во время простоя.
+sleep:
+  enabled: ${ROI_SLEEP_ENABLED:-true}
+  idle_seconds: 15
+  step_delay_seconds: 30  # пауза между шагами, не лимит числа вызовов
+  max_steps_per_cycle: null
+  daily_call_limit: null
+  auto_improve: ${ROI_SLEEP_AUTO_IMPROVE:-false}  # clean Git + полные тесты + независимая рецензия
+  merge_branch: null  # проверенные улучшения сливаются (fast-forward) в текущую ветку
+  auto_restart: true  # после слияния сервис сам перезапускается, когда рой свободен

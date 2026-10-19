@@ -1,0 +1,144 @@
+name: Local CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Python ${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, python: '3.11'}
+          - {os: ubuntu-24.04, python: '3.14'}
+          - {os: windows-2022, python: '3.11'}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pinned Hermes source for native client regressions
+        uses: actions/checkout@v4
+        with:
+          repository: NousResearch/hermes-agent
+          ref: 498abb677ec39ea3ae9f8f5ed60e7def6bc47e70
+          path: runtime/hermes-agent
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - name: Locked development dependencies (no embeddings extra)
+        run: uv sync --extra dev --frozen --python '${{ matrix.python }}'
+      - name: Scan the exact tracked public tree
+        run: uv run --no-sync python scripts/scan_public_tree.py
+      - name: App and bootstrap tests
+        # Python 3.14 still tests app code; bootstrap itself intentionally uses 3.11.
+        run: uv run --no-sync pytest -q
+      - name: Ruff
+        run: uv run --no-sync ruff check .
+
+  bootstrap-linux:
+    name: User-owned Bash bootstrap / real Git + uv fixture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.11'
+          enable-cache: false
+      - name: Syntax and ShellCheck
+        # shellcheck is preinstalled on the hosted runner; no client package mutation.
+        run: |
+          bash -n install.sh
+          shellcheck --shell=bash install.sh
+      - name: Root invocation must refuse, never install
+        run: |
+          set +e
+          output=$(sudo bash install.sh --non-interactive 2>&1)
+          result=$?
+          set -e
+          printf '%s\n' "$output"
+          test "$result" -ne 0
+          [[ "$output" == *'normal account'* ]]
+      - name: Actual installer, offline miniature Git/app, no model mocks
+        run: uv run --no-project --python 3.11 python scripts/ci_local_installer_smoke.py --shell bash
+
+  bootstrap-windows:
+    name: Native PowerShell bootstrap / standard user / real Git + uv
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: false
+      - name: Exercise installer as a non-administrator
+        shell: powershell
+        run: |
+          # Hosted Windows runners are Administrators. Give a disposable standard
+          # user a self-contained fixture, rather than bypassing the client guard.
+          $base = Join-Path $env:PUBLIC ('roi-ci-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path "$base/source/scripts", "$base/python", "$base/tools" -Force | Out-Null
+          Copy-Item install.ps1 "$base/source/install.ps1"
+          Copy-Item scripts/ci_local_installer_smoke.py "$base/source/scripts/"
+          $pythonRoot = Split-Path (Get-Command python.exe | Select-Object -First 1).Source
+          Copy-Item "$pythonRoot/*" "$base/python/" -Recurse -Force
+          Copy-Item (Get-Command uv.exe | Select-Object -First 1).Source "$base/tools/uv.exe"
+          $gitBin = Split-Path (Get-Command git.exe | Select-Object -First 1).Source
+          $password = [guid]::NewGuid().ToString('N') + '!aA7'
+          $secure = ConvertTo-SecureString $password -AsPlainText -Force
+          $user = 'roi_fixture'
+          New-LocalUser -Name $user -Password $secure -PasswordNeverExpires | Out-Null
+          $credential = New-Object PSCredential("$env:COMPUTERNAME\$user", $secure)
+          & icacls $base /grant "${user}:(OI)(CI)F" /T | Out-Null
+          $driver = @"
+          `$ErrorActionPreference = 'Stop'
+          `$env:PATH = '$base/tools;$base/python;$gitBin;' + `$env:PATH
+          `$env:UV_PYTHON = '$base/python/python.exe'
+          & '$base/python/python.exe' '$base/source/scripts/ci_local_installer_smoke.py' --shell powershell --work-dir '$base/work'
+          exit `$LASTEXITCODE
+          "@
+          Set-Content -Path "$base/fixture.ps1" -Value $driver -Encoding UTF8
+          try {
+            $child = Start-Process powershell.exe -Credential $credential -LoadUserProfile -Wait -PassThru `
+              -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',"$base/fixture.ps1") `
+              -WorkingDirectory $base -RedirectStandardOutput "$base/stdout.txt" -RedirectStandardError "$base/stderr.txt"
+            Get-Content "$base/stdout.txt", "$base/stderr.txt"
+            if ($child.ExitCode -ne 0) { throw "Standard-user bootstrap failed: $($child.ExitCode)" }
+          } finally {
+            Remove-LocalUser -Name $user
+            Remove-Item $base -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+  cpu-runtime:
+    name: Real Prism CPU / Bonsai 2B / native tokenizer + tool call
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.11'
+          enable-cache: false
+      - name: Download verified CPU runtime + 2B weights and actually infer
+        run: >-
+          uv run --no-project --python 3.11 python scripts/ci_local_installer_smoke.py
+          --cpu-runtime --work-dir '${{ runner.temp }}/roi-prism-cpu'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prism-cpu-evidence
+          path: |
+            ${{ runner.temp }}/roi-prism-cpu/prism-cpu.log
+            ${{ runner.temp }}/roi-prism-cpu/cpu-result.json
+          if-no-files-found: warn

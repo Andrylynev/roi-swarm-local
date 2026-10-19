@@ -1,0 +1,92 @@
+[
+  {
+    "path": "download/cudart-llama-bin-win-cuda-12.4-x64.zip",
+    "bytes": 391443627,
+    "sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+    "url": "https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10777-e3de715/cudart-llama-bin-win-cuda-12.4-x64.zip",
+    "kind": "runtime",
+    "release": "prism-b10777-e3de715",
+    "system": "Windows",
+    "backend": "cuda"
+  },
+  {
+    "path": "download/llama-prism-b10777-e3de715-bin-linux-cuda-12.4-x64.tar.gz",
+    "bytes": 326799565,
+    "sha256": "380eaf66b2140e8022532626041e7bd71600eb4fa434edca1d499b7fc878d46e",
+    "url": "https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10777-e3de715/llama-prism-b10777-e3de715-bin-linux-cuda-12.4-x64.tar.gz",
+    "kind": "runtime",
+    "release": "prism-b10777-e3de715",
+    "system": "Linux",
+    "backend": "cuda"
+  },
+  {
+    "path": "download/llama-prism-b10777-e3de715-bin-ubuntu-x64.tar.gz",
+    "bytes": 17882710,
+    "sha256": "3f97b6fbec0065fede2be92f05df531c1050636fc2613e1ba0d975249df19713",
+    "url": "https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10777-e3de715/llama-prism-b10777-e3de715-bin-ubuntu-x64.tar.gz",
+    "kind": "runtime",
+    "release": "prism-b10777-e3de715",
+    "system": "Linux",
+    "backend": "cpu"
+  },
+  {
+    "path": "download/llama-prism-b10777-e3de715-bin-win-cpu-x64.zip",
+    "bytes": 19530958,
+    "sha256": "cff7eeff19163e6263720618cf98023715b8dac14d0873f5be0918765de323c4",
+    "url": "https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10777-e3de715/llama-prism-b10777-e3de715-bin-win-cpu-x64.zip",
+    "kind": "runtime",
+    "release": "prism-b10777-e3de715",
+    "system": "Windows",
+    "backend": "cpu"
+  },
+  {
+    "path": "download/llama-prism-b10777-e3de715-bin-win-cuda-12.4-x64.zip",
+    "bytes": 313951324,
+    "sha256": "fa5874a1412e251a6efb13f289e97bacbbb4e7fc6714c1836b4fc6c1dc863462",
+    "url": "https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10777-e3de715/llama-prism-b10777-e3de715-bin-win-cuda-12.4-x64.zip",
+    "kind": "runtime",
+    "release": "prism-b10777-e3de715",
+    "system": "Windows",
+    "backend": "cuda"
+  },
+  {
+    "path": "models/Ternary-Bonsai-2-9B-PQ2_0-MTP-Q8_0.gguf",
+    "bytes": 2675410720,
+    "sha256": "c79fcdfaf6b7bf47089b50dadcfd11f9ce7d3e96adf3bbefde7912e5ef69e22b",
+    "url": "https://huggingface.co/prism-ml/Ternary-Bonsai-2-9B-gguf/resolve/5b2abb02362efbed46bbe204014b02837778b2c2/Ternary-Bonsai-2-9B-PQ2_0-MTP-Q8_0.gguf",
+    "kind": "model",
+    "repo": "prism-ml/Ternary-Bonsai-2-9B-gguf",
+    "revision": "5b2abb02362efbed46bbe204014b02837778b2c2",
+    "optional": false
+  },
+  {
+    "path": "models/Ternary-Bonsai-2-4B-PQ2_0-MTP-Q8_0.gguf",
+    "bytes": 1274642176,
+    "sha256": "0acf517de1dc3d85c403a60df6b8b07a4878ac174f368d4390be98406a4d6c0d",
+    "url": "https://huggingface.co/prism-ml/Ternary-Bonsai-2-4B-gguf/resolve/8d6557168168f91ea6697a4a49ed2ef622b53adb/Ternary-Bonsai-2-4B-PQ2_0-MTP-Q8_0.gguf",
+    "kind": "model",
+    "repo": "prism-ml/Ternary-Bonsai-2-4B-gguf",
+    "revision": "8d6557168168f91ea6697a4a49ed2ef622b53adb",
+    "optional": false
+  },
+  {
+    "path": "models/Ternary-Bonsai-2-2B-PQ2_0.gguf",
+    "bytes": 517312992,
+    "sha256": "d5f01a4ecaf49239653308ee732ad1a0c5f802c0ddb997549fc7b694c8b45928",
+    "url": "https://huggingface.co/prism-ml/Ternary-Bonsai-2-2B-gguf/resolve/683f7be2629342a50987627b40881e54761a2430/Ternary-Bonsai-2-2B-PQ2_0.gguf",
+    "kind": "model",
+    "repo": "prism-ml/Ternary-Bonsai-2-2B-gguf",
+    "revision": "683f7be2629342a50987627b40881e54761a2430",
+    "optional": false
+  },
+  {
+    "path": "models/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-Q4_K_M.gguf",
+    "bytes": 4683072032,
+    "sha256": "3790b0bf2c505fcbd144b6b69354fe45a83ac09238a87469db0082027c127de4",
+    "url": "https://huggingface.co/bartowski/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-GGUF/resolve/4874da7ad5fa4da4f2584ae64ddc21f5a8e7dfce/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-Q4_K_M.gguf",
+    "kind": "model",
+    "repo": "bartowski/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B-GGUF",
+    "revision": "4874da7ad5fa4da4f2584ae64ddc21f5a8e7dfce",
+    "optional": true
+  }
+]

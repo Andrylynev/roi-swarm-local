@@ -1,0 +1,51 @@
+# Local deployment template. setup generates local/settings.yaml with installation paths.
+provider:
+  base_url: http://127.0.0.1:8091/v1
+  api_key: local-only
+  timeout_seconds: null
+  max_retries: 1
+  api_mode: chat_completions
+models:
+  router: {model: bonsai-2b, temperature: 0.7, max_output_tokens: 1500}
+  planner: {model: bonsai-9b, temperature: 0.7, max_output_tokens: 4096}
+  worker: {model: bonsai-4b, temperature: 0.7, max_output_tokens: 4096}
+  critic: {model: bonsai-9b, temperature: 0.7, max_output_tokens: 4096}
+  synthesizer: {model: bonsai-9b, temperature: 0.7, max_output_tokens: 4096}
+hermes_workers:
+  enabled: true
+  default_cwd: ""
+  maximum_concurrency: 2
+  max_iterations: 60
+  maximum_waves: 4
+  isolate_worktrees: true
+  worktree_root: ""
+  linked_dirs: [.venv, node_modules]
+swarm:
+  minimum_workers: 10
+  maximum_workers: 50
+  maximum_concurrency: 2
+  direct_answer_max_workers: 3
+  expansion_batch: 10
+  maximum_rounds: 5
+  fast_path_enabled: true
+  aggregation_group_size: 15
+context:
+  artifact_threshold_chars: 8000
+  recent_messages: 8
+  worker_context_tokens: 65536
+  main_context_tokens: 65536
+  token_encoding: o200k_base
+  maximum_pack_chars: null
+  planner_input_limit_chars: null
+rag:
+  enabled: false
+  database_path: data/rag/rag.sqlite
+  embeddings_enabled: false
+  project_collections: {}
+experience:
+  enabled: true
+  database_path: data/experience/experience.sqlite
+sleep:
+  enabled: false
+  auto_improve: false
+  auto_restart: false
